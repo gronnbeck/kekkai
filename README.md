@@ -46,9 +46,21 @@ All `claude` flags work. Kekkai pass them to Claude.
 
 Put `kekkai.Dockerfile` in repo root.
 Each repo get own box. Add tools repo need.
-No file? Kekkai use [default box](kekkai.Dockerfile).
+No file? Kekkai use [default box](default.Dockerfile).
 
 Change file, box build again.
+
+Lazy? Let Claude make it:
+
+```sh
+kekkai --kekkai-init
+```
+
+Claude look at repo. Claude find tools and versions.
+Claude write `kekkai.Dockerfile`. Claude build it to check.
+Claude only touch that one file.
+
+Want other agent? `--kekkai-init-agent codex`.
 
 ## What Claude see
 
@@ -56,6 +68,7 @@ Change file, box build again.
 - Dirs you give with `--add-dir`
 - Own Claude home in `~/.kekkai`
 
+Claude change file in repo? Change land on your Mac. You keep it.
 Claude no see rest of Mac.
 Claude no touch your real `~/.claude`.
 
@@ -88,6 +101,7 @@ kekkai --kekkai-help
 
 | Flag | Do |
 |---|---|
+| `--kekkai-init` | Make `kekkai.Dockerfile` |
 | `--kekkai-dry-run` | Show command. No run. |
 | `--kekkai-rebuild` | Build box again |
 | `--kekkai-mount src[:dst][:ro]` | Give box more dir |

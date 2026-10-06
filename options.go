@@ -20,6 +20,8 @@ type options struct {
 	dryRun     bool
 	noSeed     bool
 	help       bool
+	init       bool
+	initAgent  string
 }
 
 var boolFlags = map[string]bool{
@@ -27,6 +29,7 @@ var boolFlags = map[string]bool{
 	"dry-run": true,
 	"no-seed": true,
 	"help":    true,
+	"init":    true,
 }
 
 func defaultOptions() options {
@@ -39,6 +42,7 @@ func defaultOptions() options {
 		mounts:     splitList(os.Getenv("KEKKAI_MOUNTS")),
 		env:        splitList(os.Getenv("KEKKAI_ENV")),
 		noSeed:     os.Getenv("KEKKAI_NO_SEED") != "",
+		initAgent:  os.Getenv("KEKKAI_INIT_AGENT"),
 	}
 }
 
@@ -79,6 +83,8 @@ func parseArgs(args []string, opts options) (options, []string, error) {
 				opts.noSeed = true
 			case "help":
 				opts.help = true
+			case "init":
+				opts.init = true
 			}
 			continue
 		}
@@ -105,6 +111,8 @@ func parseArgs(args []string, opts options) (options, []string, error) {
 			opts.mounts = append(opts.mounts, value)
 		case "env":
 			opts.env = append(opts.env, value)
+		case "init-agent":
+			opts.initAgent = value
 		default:
 			return opts, nil, fmt.Errorf("unknown flag %s%s", flagPrefix, name)
 		}
@@ -117,6 +125,9 @@ const usage = `kekkai runs Claude Code inside an Apple container.
 Every argument without the --kekkai- prefix goes to claude unchanged.
 
 Wrapper flags (env var in brackets):
+  --kekkai-init              have an agent write kekkai.Dockerfile for this repo
+                             on the host, then exit; other args go to the agent
+  --kekkai-init-agent <cmd>  agent for --kekkai-init, default claude [KEKKAI_INIT_AGENT]
   --kekkai-file <path>       Dockerfile to build [KEKKAI_DOCKERFILE]
                              default: <repo root>/kekkai.Dockerfile, else built-in
   --kekkai-image <ref>       use this image and skip the build [KEKKAI_IMAGE]

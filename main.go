@@ -42,6 +42,10 @@ func run(argv []string) (int, error) {
 		cwd = resolved
 	}
 
+	if opts.init {
+		return runInit(opts, cwd, claudeArgs)
+	}
+
 	if opts.stateDir == "" {
 		home, err := os.UserHomeDir()
 		if err != nil {
@@ -167,7 +171,14 @@ func containerName(cwd string) string {
 }
 
 func execContainer(args []string) (int, error) {
-	cmd := exec.Command("container", args...)
+	code, err := execCommand(exec.Command("container", args...))
+	if code == 127 {
+		err = fmt.Errorf("is Apple container installed? `brew install container && container system start`: %w", err)
+	}
+	return code, err
+}
+
+func execCommand(cmd *exec.Cmd) (int, error) {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -177,7 +188,7 @@ func execContainer(args []string) (int, error) {
 	defer signal.Stop(sigs)
 
 	if err := cmd.Start(); err != nil {
-		return 127, fmt.Errorf("start container (is Apple container installed? `brew install container && container system start`): %w", err)
+		return 127, err
 	}
 	go func() {
 		for sig := range sigs {

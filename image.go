@@ -13,7 +13,7 @@ import (
 
 const dockerfileName = "kekkai.Dockerfile"
 
-//go:embed kekkai.Dockerfile
+//go:embed default.Dockerfile
 var defaultDockerfile []byte
 
 func resolveDockerfile(opts options, cwd string) (path string, err error) {

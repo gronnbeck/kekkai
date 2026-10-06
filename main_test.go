@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -157,5 +158,42 @@ func TestContainerEnvSkipsHostSessionVars(t *testing.T) {
 		if env[kv] {
 			t.Errorf("leaked %s", kv)
 		}
+	}
+}
+
+func TestParseArgsInit(t *testing.T) {
+	opts, rest, err := parseArgs([]string{"--kekkai-init", "--kekkai-init-agent", "codex", "--model", "opus"}, options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !opts.init || opts.initAgent != "codex" || !reflect.DeepEqual(rest, []string{"--model", "opus"}) {
+		t.Errorf("opts = %+v, rest = %q", opts, rest)
+	}
+}
+
+func TestInitArgsLimitClaudeToTheDockerfile(t *testing.T) {
+	got := initArgs("/usr/bin/claude", "P", "/repo/kekkai.Dockerfile", false)
+	want := []string{"-p", "P", "--allowedTools", "Read", "Glob", "Grep",
+		"Edit(//repo/kekkai.Dockerfile)", "Bash(container build *)"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %q", got)
+	}
+	if got := initArgs("claude", "P", "/t", true); got[0] != "P" {
+		t.Errorf("interactive should not pass -p: %q", got)
+	}
+	if got := initArgs("codex", "P", "/t", false); !reflect.DeepEqual(got, []string{"P"}) {
+		t.Errorf("other agents get the prompt only: %q", got)
+	}
+}
+
+func TestBuildInitPrompt(t *testing.T) {
+	p := buildInitPrompt("/repo/kekkai.Dockerfile", "/repo", true)
+	for _, want := range []string{"/repo/kekkai.Dockerfile", "--tag kekkai-init-check /repo", "improve it", "FROM debian"} {
+		if !strings.Contains(p, want) {
+			t.Errorf("prompt missing %q", want)
+		}
+	}
+	if strings.Contains(p, "{{") {
+		t.Error("unreplaced placeholder")
 	}
 }
