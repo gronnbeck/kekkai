@@ -22,7 +22,7 @@ In box, "all things" only mean your repo.
 ## Get
 
 ```sh
-git clone https://github.com/ken-brevio/kekkai
+git clone https://github.com/gronnbeck/kekkai
 cd kekkai
 ./install.sh
 ```
