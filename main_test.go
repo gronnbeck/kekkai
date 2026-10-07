@@ -213,3 +213,29 @@ func TestRepointSettingsUsesContainerConfigDir(t *testing.T) {
 		t.Errorf("got %s", got)
 	}
 }
+
+func TestReadOnlyExceptKeepsConfigDirWritable(t *testing.T) {
+	got := readOnlyExcept([]mount{
+		{src: "/repo", dst: "/repo"},
+		{src: "/cfg", dst: "/claude-config"},
+		{src: "/logs", dst: "/logs"},
+	}, "/claude-config")
+	want := []mount{
+		{src: "/repo", dst: "/repo", readOnly: true},
+		{src: "/cfg", dst: "/claude-config"},
+		{src: "/logs", dst: "/logs", readOnly: true},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got  %+v\nwant %+v", got, want)
+	}
+}
+
+func TestParseArgsReadOnly(t *testing.T) {
+	opts, rest, err := parseArgs([]string{"--kekkai-read-only", "-p", "hi"}, options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !opts.readOnly || !reflect.DeepEqual(rest, []string{"-p", "hi"}) {
+		t.Errorf("opts = %+v, rest = %q", opts, rest)
+	}
+}

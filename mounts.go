@@ -106,6 +106,15 @@ func mountFor(kind pathKind, value, cwd string) (mount, bool) {
 	}
 }
 
+func readOnlyExcept(mounts []mount, writableDst string) []mount {
+	out := make([]mount, len(mounts))
+	for i, m := range mounts {
+		m.readOnly = m.dst != writableDst
+		out[i] = m
+	}
+	return out
+}
+
 func gitCommonDir(dir string) string {
 	out, err := exec.Command("git", "-C", dir, "rev-parse", "--path-format=absolute", "--git-common-dir").Output()
 	if err != nil {

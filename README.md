@@ -75,6 +75,9 @@ Claude no touch your real `~/.claude`.
 Kekkai copy your `CLAUDE.md`, settings, skills and hooks into box.
 No want? Use `--kekkai-no-seed`.
 
+Want Claude only look, no change? Use `--kekkai-read-only`.
+Repo and every mount go read-only. Only `~/.kekkai` stay writable.
+
 ## Login
 
 Kekkai find login in this order:

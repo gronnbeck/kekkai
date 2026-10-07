@@ -19,17 +19,19 @@ type options struct {
 	rebuild    bool
 	dryRun     bool
 	noSeed     bool
+	readOnly   bool
 	help       bool
 	init       bool
 	initAgent  string
 }
 
 var boolFlags = map[string]bool{
-	"rebuild": true,
-	"dry-run": true,
-	"no-seed": true,
-	"help":    true,
-	"init":    true,
+	"rebuild":   true,
+	"dry-run":   true,
+	"no-seed":   true,
+	"read-only": true,
+	"help":      true,
+	"init":      true,
 }
 
 func defaultOptions() options {
@@ -42,6 +44,7 @@ func defaultOptions() options {
 		mounts:     splitList(os.Getenv("KEKKAI_MOUNTS")),
 		env:        splitList(os.Getenv("KEKKAI_ENV")),
 		noSeed:     os.Getenv("KEKKAI_NO_SEED") != "",
+		readOnly:   os.Getenv("KEKKAI_READ_ONLY") != "",
 		initAgent:  os.Getenv("KEKKAI_INIT_AGENT"),
 	}
 }
@@ -81,6 +84,8 @@ func parseArgs(args []string, opts options) (options, []string, error) {
 				opts.dryRun = true
 			case "no-seed":
 				opts.noSeed = true
+			case "read-only":
+				opts.readOnly = true
 			case "help":
 				opts.help = true
 			case "init":
@@ -141,6 +146,8 @@ Wrapper flags (env var in brackets):
                              default: ~/.kekkai
   --kekkai-no-seed           skip copying CLAUDE.md, settings, skills etc. from ~/.claude
                              [KEKKAI_NO_SEED]
+  --kekkai-read-only         mount everything read-only except the claude state dir
+                             [KEKKAI_READ_ONLY]
   --kekkai-dry-run           print the container command and exit
   --kekkai-help              show this help
 `

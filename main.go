@@ -104,6 +104,9 @@ func run(argv []string) (int, error) {
 	for _, spec := range opts.mounts {
 		mounts = append(mounts, parseMountSpec(spec, cwd))
 	}
+	if opts.readOnly {
+		mounts = readOnlyExcept(mounts, containerConfigDir)
+	}
 	mounts = dedupeMounts(mounts)
 
 	tty := isTerminal(os.Stdin) && isTerminal(os.Stdout)
