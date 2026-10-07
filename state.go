@@ -15,7 +15,7 @@ import (
 
 const containerConfigDir = "/claude-config"
 
-var seedEntries = []string{"CLAUDE.md", "settings.json", "agents", "commands", "skills", "output-styles"}
+var seedEntries = []string{"CLAUDE.md", "settings.json", "agents", "commands", "skills", "output-styles", "hooks"}
 
 var authEnv = []string{"ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN"}
 
@@ -38,7 +38,24 @@ func seedConfig(configDir string) error {
 			return fmt.Errorf("seed %s: %w", name, err)
 		}
 	}
-	return nil
+	return repointSettings(filepath.Join(configDir, "settings.json"), home)
+}
+
+func repointSettings(path, home string) error {
+	b, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	s := strings.NewReplacer(
+		"$HOME/.claude", "$CLAUDE_CONFIG_DIR",
+		"${HOME}/.claude", "$CLAUDE_CONFIG_DIR",
+		"~/.claude", "$CLAUDE_CONFIG_DIR",
+		filepath.Join(home, ".claude"), "$CLAUDE_CONFIG_DIR",
+	).Replace(string(b))
+	return os.WriteFile(path, []byte(s), 0o644)
 }
 
 func copyTree(from, to string) error {

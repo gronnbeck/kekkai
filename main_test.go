@@ -197,3 +197,19 @@ func TestBuildInitPrompt(t *testing.T) {
 		t.Error("unreplaced placeholder")
 	}
 }
+
+func TestRepointSettingsUsesContainerConfigDir(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "settings.json")
+	in := `{"a":"bash \"$HOME/.claude/hooks/x.sh\"","b":"~/.claude/hooks/y.sh","c":"/Users/me/.claude/hooks/z.sh"}`
+	if err := os.WriteFile(p, []byte(in), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := repointSettings(p, "/Users/me"); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := os.ReadFile(p)
+	want := `{"a":"bash \"$CLAUDE_CONFIG_DIR/hooks/x.sh\"","b":"$CLAUDE_CONFIG_DIR/hooks/y.sh","c":"$CLAUDE_CONFIG_DIR/hooks/z.sh"}`
+	if string(got) != want {
+		t.Errorf("got %s", got)
+	}
+}

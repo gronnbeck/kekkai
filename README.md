@@ -72,7 +72,7 @@ Claude change file in repo? Change land on your Mac. You keep it.
 Claude no see rest of Mac.
 Claude no touch your real `~/.claude`.
 
-Kekkai copy your `CLAUDE.md`, settings and skills into box.
+Kekkai copy your `CLAUDE.md`, settings, skills and hooks into box.
 No want? Use `--kekkai-no-seed`.
 
 ## Login
