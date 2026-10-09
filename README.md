@@ -49,6 +49,10 @@ Each repo get own box. Add tools repo need.
 No file? Kekkai use `~/.kekkai/default.Dockerfile`.
 No that either? Kekkai use [default box](default.Dockerfile).
 
+Want own default? Copy built-in, then change:
+`cp default.Dockerfile ~/.kekkai/default.Dockerfile`
+No `COPY` in it. Kekkai build from copy in `~/.kekkai/default-image`, so files next to it no come along.
+
 Change file, box build again.
 
 Lazy? Let Claude make it:

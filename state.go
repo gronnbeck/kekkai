@@ -24,17 +24,19 @@ func seedConfig(configDir string) error {
 	if err != nil {
 		return err
 	}
+	unlock, err := lockFile(filepath.Join(configDir, ".seed.lock"))
+	if err != nil {
+		return err
+	}
+	defer unlock()
+
 	src := filepath.Join(home, ".claude")
 	for _, name := range seedEntries {
 		from := filepath.Join(src, name)
 		if _, err := os.Stat(from); err != nil {
 			continue
 		}
-		to := filepath.Join(configDir, name)
-		if err := os.RemoveAll(to); err != nil {
-			return err
-		}
-		if err := copyTree(from, to); err != nil {
+		if err := replaceEntry(from, filepath.Join(configDir, name)); err != nil {
 			return fmt.Errorf("seed %s: %w", name, err)
 		}
 	}
@@ -56,6 +58,24 @@ func repointSettings(path, home string) error {
 		filepath.Join(home, ".claude"), "$CLAUDE_CONFIG_DIR",
 	).Replace(string(b))
 	return os.WriteFile(path, []byte(s), 0o644)
+}
+
+func replaceEntry(from, to string) error {
+	tmp, err := os.MkdirTemp(filepath.Dir(to), ".seed-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmp)
+
+	fresh := filepath.Join(tmp, "new")
+	if err := copyTree(from, fresh); err != nil {
+		return err
+	}
+	old := filepath.Join(tmp, "old")
+	if err := os.Rename(to, old); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return os.Rename(fresh, to)
 }
 
 func copyTree(from, to string) error {

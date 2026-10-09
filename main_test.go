@@ -252,3 +252,27 @@ func TestResolveDockerfileUsesUserDefault(t *testing.T) {
 		t.Errorf("got %s with %q", got, content)
 	}
 }
+
+func TestReplaceEntrySwapsDirAndLeavesNoTemp(t *testing.T) {
+	root := t.TempDir()
+	from := filepath.Join(root, "src")
+	os.MkdirAll(filepath.Join(from, "a"), 0o755)
+	os.WriteFile(filepath.Join(from, "a", "SKILL.md"), []byte("new"), 0o644)
+	cfg := filepath.Join(root, "cfg")
+	to := filepath.Join(cfg, "skills")
+	os.MkdirAll(filepath.Join(to, "stale"), 0o755)
+	os.WriteFile(filepath.Join(to, "stale", "x"), []byte("old"), 0o644)
+
+	if err := replaceEntry(from, to); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := os.ReadFile(filepath.Join(to, "a", "SKILL.md")); string(got) != "new" {
+		t.Errorf("got %q", got)
+	}
+	if _, err := os.Stat(filepath.Join(to, "stale")); !os.IsNotExist(err) {
+		t.Error("stale entry kept")
+	}
+	if entries, _ := os.ReadDir(cfg); len(entries) != 1 {
+		t.Errorf("leftovers in cfg: %v", entries)
+	}
+}
