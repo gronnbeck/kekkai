@@ -46,7 +46,8 @@ All `claude` flags work. Kekkai pass them to Claude.
 
 Put `kekkai.Dockerfile` in repo root.
 Each repo get own box. Add tools repo need.
-No file? Kekkai use [default box](default.Dockerfile).
+No file? Kekkai use `~/.kekkai/default.Dockerfile`.
+No that either? Kekkai use [default box](default.Dockerfile).
 
 Change file, box build again.
 

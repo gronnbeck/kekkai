@@ -239,3 +239,16 @@ func TestParseArgsReadOnly(t *testing.T) {
 		t.Errorf("opts = %+v, rest = %q", opts, rest)
 	}
 }
+
+func TestResolveDockerfileUsesUserDefault(t *testing.T) {
+	state := t.TempDir()
+	os.WriteFile(filepath.Join(state, userDefaultName), []byte("FROM debian\n"), 0o644)
+	got, err := resolveDockerfile(options{stateDir: state}, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	content, _ := os.ReadFile(got)
+	if string(content) != "FROM debian\n" || filepath.Dir(got) == state {
+		t.Errorf("got %s with %q", got, content)
+	}
+}

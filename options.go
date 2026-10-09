@@ -134,7 +134,8 @@ Wrapper flags (env var in brackets):
                              on the host, then exit; other args go to the agent
   --kekkai-init-agent <cmd>  agent for --kekkai-init, default claude [KEKKAI_INIT_AGENT]
   --kekkai-file <path>       Dockerfile to build [KEKKAI_DOCKERFILE]
-                             default: <repo root>/kekkai.Dockerfile, else built-in
+                             default: <repo root>/kekkai.Dockerfile,
+                             else <state dir>/default.Dockerfile, else built-in
   --kekkai-image <ref>       use this image and skip the build [KEKKAI_IMAGE]
   --kekkai-rebuild           rebuild the image even if it exists
   --kekkai-mount <src[:dst][:ro]>

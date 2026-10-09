@@ -11,7 +11,10 @@ import (
 	"syscall"
 )
 
-const dockerfileName = "kekkai.Dockerfile"
+const (
+	dockerfileName  = "kekkai.Dockerfile"
+	userDefaultName = "default.Dockerfile"
+)
 
 //go:embed default.Dockerfile
 var defaultDockerfile []byte
@@ -38,12 +41,19 @@ func resolveDockerfile(opts options, cwd string) (path string, err error) {
 		}
 	}
 
+	content := defaultDockerfile
+	if user, err := os.ReadFile(filepath.Join(opts.stateDir, userDefaultName)); err == nil {
+		content = user
+	} else if !os.IsNotExist(err) {
+		return "", fmt.Errorf("dockerfile: %w", err)
+	}
+
 	dir := filepath.Join(opts.stateDir, "default-image")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", err
 	}
 	p := filepath.Join(dir, dockerfileName)
-	return p, os.WriteFile(p, defaultDockerfile, 0o644)
+	return p, os.WriteFile(p, content, 0o644)
 }
 
 func imageTag(dockerfile []byte) string {
