@@ -114,10 +114,19 @@ kekkai --kekkai-help
 | `--kekkai-rebuild` | Build box again |
 | `--kekkai-mount src[:dst][:ro]` | Give box more dir |
 | `--kekkai-env NAME[=VAL]` | Give box env var |
-| `--kekkai-cpus 4` | More brain |
-| `--kekkai-memory 8G` | More memory |
+| `--kekkai-cpus 4` | Brain. Default 8. |
+| `--kekkai-memory 4G` | Memory. Default 12G. |
 | `--kekkai-file path` | Use other Dockerfile |
 | `--kekkai-image ref` | Use ready image. No build. |
 
 Most flags also work as env var, like `KEKKAI_CPUS=4`.
 `--kekkai-help` show which.
+
+Want same every time? Put env var in `~/.kekkai/kekkai.env`:
+
+```
+KEKKAI_CPUS=4
+KEKKAI_MEMORY=4G
+```
+
+Flag beat env var. Env var beat file.

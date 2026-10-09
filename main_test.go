@@ -276,3 +276,30 @@ func TestReplaceEntrySwapsDirAndLeavesNoTemp(t *testing.T) {
 		t.Errorf("leftovers in cfg: %v", entries)
 	}
 }
+
+func TestDefaultOptionsReadSettingsFileBelowEnv(t *testing.T) {
+	state := t.TempDir()
+	os.WriteFile(filepath.Join(state, settingsFileName), []byte(
+		"# resources\nKEKKAI_CPUS=2\nexport KEKKAI_MEMORY=\"16G\"\n\nKEKKAI_MOUNTS=/a,/b\n",
+	), 0o644)
+	t.Setenv("KEKKAI_STATE_DIR", state)
+	t.Setenv("KEKKAI_CPUS", "3")
+	os.Unsetenv("KEKKAI_MEMORY")
+	os.Unsetenv("KEKKAI_MOUNTS")
+
+	opts := defaultOptions()
+	if opts.cpus != "3" || opts.memory != "16G" || !reflect.DeepEqual(opts.mounts, []string{"/a", "/b"}) {
+		t.Errorf("opts = %+v", opts)
+	}
+}
+
+func TestDefaultOptionsFallBackToBuiltInResources(t *testing.T) {
+	t.Setenv("KEKKAI_STATE_DIR", t.TempDir())
+	os.Unsetenv("KEKKAI_CPUS")
+	os.Unsetenv("KEKKAI_MEMORY")
+
+	opts := defaultOptions()
+	if opts.cpus != defaultCPUs || opts.memory != defaultMemory {
+		t.Errorf("opts = %+v", opts)
+	}
+}
