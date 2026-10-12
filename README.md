@@ -152,6 +152,8 @@ Two way to give env var:
 
 Mac no have `HOST_VAR`? Kekkai skip it and say so.
 
+Never put secret as plain value. File end up in git. Use `{from: HOST_VAR}`.
+
 Flag beat env var. Env var beat repo file. Repo file beat home file.
 `mounts` and `env` from both files add up.
 
