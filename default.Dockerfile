@@ -6,6 +6,13 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/* \
  && git config --system safe.directory '*'
 
+RUN install -d -m 755 /etc/apt/keyrings \
+ && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+ && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends gh \
+ && rm -rf /var/lib/apt/lists/*
+
 RUN useradd --create-home --uid 1000 --shell /bin/bash claude
 USER claude
 ENV HOME=/home/claude \

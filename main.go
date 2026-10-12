@@ -91,6 +91,15 @@ func run(argv []string) (int, error) {
 			extraEnv["CLAUDE_CODE_OAUTH_TOKEN"] = tok
 		}
 	}
+	if !opts.dryRun {
+		gh, err := githubEnv()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "kekkai: %v\n", err)
+		}
+		for k, v := range gh {
+			extraEnv[k] = v
+		}
+	}
 	env := containerEnv(opts, extraEnv)
 
 	mounts := []mount{

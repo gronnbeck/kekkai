@@ -170,6 +170,28 @@ var hostOnlyMarkers = []string{"SESSION", "EXECPATH", "MESSAGING", "CHILD", "SSE
 
 var forwardNames = []string{"TERM", "COLORTERM", "LANG", "LC_ALL", "TZ", "NO_COLOR", "FORCE_COLOR"}
 
+const gitCredentialHelper = `!f() { test "$1" = get && echo username=x-access-token && echo "password=$GH_TOKEN"; }; f`
+
+func githubEnv() (map[string]string, error) {
+	token := os.Getenv("GH_TOKEN")
+	if token == "" {
+		token = os.Getenv("GITHUB_TOKEN")
+	}
+	if token == "" {
+		out, err := exec.Command("gh", "auth", "token").Output()
+		if err != nil {
+			return nil, fmt.Errorf("no GitHub token: set GH_TOKEN or run gh auth login")
+		}
+		token = strings.TrimSpace(string(out))
+	}
+	return map[string]string{
+		"GH_TOKEN":           token,
+		"GIT_CONFIG_COUNT":   "1",
+		"GIT_CONFIG_KEY_0":   "credential.https://github.com.helper",
+		"GIT_CONFIG_VALUE_0": gitCredentialHelper,
+	}, nil
+}
+
 func containerEnv(opts options, extra map[string]string) []string {
 	env := map[string]string{}
 	for _, kv := range os.Environ() {

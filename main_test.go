@@ -303,3 +303,14 @@ func TestDefaultOptionsFallBackToBuiltInResources(t *testing.T) {
 		t.Errorf("opts = %+v", opts)
 	}
 }
+
+func TestGithubEnvPrefersHostToken(t *testing.T) {
+	t.Setenv("GH_TOKEN", "t")
+	env, err := githubEnv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if env["GH_TOKEN"] != "t" || env["GIT_CONFIG_KEY_0"] != "credential.https://github.com.helper" || env["GIT_CONFIG_VALUE_0"] != gitCredentialHelper {
+		t.Errorf("env = %v", env)
+	}
+}

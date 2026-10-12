@@ -93,6 +93,12 @@ Kekkai find login in this order:
 
 Keychain token die fast. Run `claude setup-token` for long life.
 
+## GitHub
+
+Box get your GitHub token, so Claude can `git push` and `gh pr create`.
+Kekkai take `GH_TOKEN`, else `GITHUB_TOKEN`, else `gh auth token` (active account).
+Token reach every box. Claude can do all token can do.
+
 ## Conductor
 
 Kekkai work in [Conductor](https://conductor.build).
