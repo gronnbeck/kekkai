@@ -42,16 +42,30 @@ func run(argv []string) (int, error) {
 		cwd = resolved
 	}
 
-	if opts.init {
-		return runInit(opts, cwd, claudeArgs)
-	}
-
 	if opts.stateDir == "" {
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return 1, err
 		}
 		opts.stateDir = filepath.Join(home, ".kekkai")
+	}
+
+	repoRoot := gitTopLevel(cwd)
+	if repoRoot == "" {
+		repoRoot = cwd
+	}
+	var configs []*fileConfig
+	for _, dir := range []string{opts.stateDir, repoRoot} {
+		cfg, err := loadConfig(dir)
+		if err != nil {
+			return 2, err
+		}
+		configs = append(configs, cfg)
+	}
+	opts = applyConfigs(opts, configs...)
+
+	if opts.init {
+		return runInit(opts, cwd, claudeArgs)
 	}
 	configDir := filepath.Join(opts.stateDir, "config")
 	runDir := filepath.Join(opts.stateDir, "run")
@@ -82,15 +96,6 @@ func run(argv []string) (int, error) {
 	}
 
 	extraEnv := map[string]string{"CLAUDE_CONFIG_DIR": containerConfigDir}
-	_, haveCreds := os.Stat(filepath.Join(configDir, ".credentials.json"))
-	if !authFromEnv() && haveCreds != nil && !opts.dryRun {
-		tok, err := keychainToken()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "kekkai: %v\n", err)
-		} else {
-			extraEnv["CLAUDE_CODE_OAUTH_TOKEN"] = tok
-		}
-	}
 	if !opts.dryRun {
 		gh, err := githubEnv()
 		if err != nil {
@@ -102,6 +107,17 @@ func run(argv []string) (int, error) {
 	}
 	env := containerEnv(opts, extraEnv)
 
+	_, haveCreds := os.Stat(filepath.Join(configDir, ".credentials.json"))
+	if !hasAuth(env) && haveCreds != nil && !opts.dryRun {
+		tok, err := keychainToken()
+		if err != nil {
+			return 1, fmt.Errorf("no login for the box: %w\n"+
+				"run `claude` on the Mac once to refresh the keychain token, or create a long-lived one with "+
+				"`claude setup-token` and set it as CLAUDE_CODE_OAUTH_TOKEN (env var or ~/.kekkai/.kekkai.yaml)", err)
+		}
+		env = append(env, "CLAUDE_CODE_OAUTH_TOKEN="+tok)
+	}
+
 	mounts := []mount{
 		{src: cwd, dst: cwd},
 		{src: configDir, dst: containerConfigDir},
@@ -110,6 +126,7 @@ func run(argv []string) (int, error) {
 		mounts = append(mounts, mount{src: common, dst: common})
 	}
 	mounts = append(mounts, claudeArgMounts(claudeArgs, cwd)...)
+	mounts = append(mounts, opts.configMounts...)
 	for _, spec := range opts.mounts {
 		mounts = append(mounts, parseMountSpec(spec, cwd))
 	}

@@ -141,9 +141,7 @@ func parseMountSpec(spec string, cwd string) mount {
 	if len(parts) > 1 {
 		m.dst = parts[1]
 	}
-	if !filepath.IsAbs(m.src) {
-		m.src = filepath.Join(cwd, m.src)
-	}
+	m.src = resolvePath(m.src, cwd)
 	if m.dst == "" {
 		m.dst = m.src
 	}

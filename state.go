@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -150,14 +151,15 @@ func keychainToken() (string, error) {
 		return "", fmt.Errorf("keychain credentials hold no access token")
 	}
 	if tok.ExpiresAt > 0 && time.UnixMilli(tok.ExpiresAt).Before(time.Now().Add(time.Minute)) {
-		return "", fmt.Errorf("keychain token has expired (run claude on the host to refresh it, or use `claude setup-token`)")
+		return "", fmt.Errorf("keychain token expired %s ago", time.Since(time.UnixMilli(tok.ExpiresAt)).Round(time.Minute))
 	}
 	return tok.AccessToken, nil
 }
 
-func authFromEnv() bool {
-	for _, k := range authEnv {
-		if os.Getenv(k) != "" {
+func hasAuth(env []string) bool {
+	for _, kv := range env {
+		k, v, _ := strings.Cut(kv, "=")
+		if v != "" && slices.Contains(authEnv, k) {
 			return true
 		}
 	}
@@ -208,6 +210,13 @@ func containerEnv(opts options, extra map[string]string) []string {
 		}
 		if forward {
 			env[k] = v
+		}
+	}
+	for _, e := range opts.configEnv {
+		if v, ok := e.resolve(); ok {
+			env[e.name] = v
+		} else {
+			fmt.Fprintf(os.Stderr, "kekkai: skipping env %s (%s is not set on the host)\n", e.name, e.From)
 		}
 	}
 	for _, spec := range opts.env {

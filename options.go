@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -24,6 +23,9 @@ type options struct {
 	help       bool
 	init       bool
 	initAgent  string
+
+	configMounts []mount
+	configEnv    []envEntry
 }
 
 var boolFlags = map[string]bool{
@@ -36,70 +38,23 @@ var boolFlags = map[string]bool{
 }
 
 const (
-	settingsFileName = "kekkai.env"
-	defaultCPUs      = "8"
-	defaultMemory    = "12G"
+	defaultCPUs   = "8"
+	defaultMemory = "12G"
 )
 
 func defaultOptions() options {
-	file := readSettingsFile(settingsPath())
-	get := func(key string) string {
-		if v, ok := os.LookupEnv(key); ok {
-			return v
-		}
-		return file[key]
-	}
-	or := func(v, fallback string) string {
-		if v == "" {
-			return fallback
-		}
-		return v
-	}
 	return options{
-		dockerfile: get("KEKKAI_DOCKERFILE"),
-		image:      get("KEKKAI_IMAGE"),
-		stateDir:   get("KEKKAI_STATE_DIR"),
-		cpus:       or(get("KEKKAI_CPUS"), defaultCPUs),
-		memory:     or(get("KEKKAI_MEMORY"), defaultMemory),
-		mounts:     splitList(get("KEKKAI_MOUNTS")),
-		env:        splitList(get("KEKKAI_ENV")),
-		noSeed:     get("KEKKAI_NO_SEED") != "",
-		readOnly:   get("KEKKAI_READ_ONLY") != "",
-		initAgent:  get("KEKKAI_INIT_AGENT"),
+		dockerfile: os.Getenv("KEKKAI_DOCKERFILE"),
+		image:      os.Getenv("KEKKAI_IMAGE"),
+		stateDir:   os.Getenv("KEKKAI_STATE_DIR"),
+		cpus:       os.Getenv("KEKKAI_CPUS"),
+		memory:     os.Getenv("KEKKAI_MEMORY"),
+		mounts:     splitList(os.Getenv("KEKKAI_MOUNTS")),
+		env:        splitList(os.Getenv("KEKKAI_ENV")),
+		noSeed:     os.Getenv("KEKKAI_NO_SEED") != "",
+		readOnly:   os.Getenv("KEKKAI_READ_ONLY") != "",
+		initAgent:  os.Getenv("KEKKAI_INIT_AGENT"),
 	}
-}
-
-func settingsPath() string {
-	dir := os.Getenv("KEKKAI_STATE_DIR")
-	if dir == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return ""
-		}
-		dir = filepath.Join(home, ".kekkai")
-	}
-	return filepath.Join(dir, settingsFileName)
-}
-
-func readSettingsFile(path string) map[string]string {
-	settings := map[string]string{}
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return settings
-	}
-	for _, line := range strings.Split(string(b), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		key, value, ok := strings.Cut(line, "=")
-		if !ok {
-			continue
-		}
-		key = strings.TrimSpace(strings.TrimPrefix(key, "export "))
-		settings[key] = strings.Trim(strings.TrimSpace(value), `"'`)
-	}
-	return settings
 }
 
 func splitList(s string) []string {
@@ -182,8 +137,8 @@ const usage = `kekkai runs Claude Code inside an Apple container.
 
 Every argument without the --kekkai- prefix goes to claude unchanged.
 
-Env vars can also live in <state dir>/kekkai.env as NAME=VALUE lines.
-Precedence: flag, then env var, then kekkai.env.
+Settings can also live in .kekkai.yaml, in the repo root and in the state dir.
+Precedence: flag, then env var, then repo .kekkai.yaml, then the state dir one.
 
 Wrapper flags (env var in brackets):
   --kekkai-init              have an agent write kekkai.Dockerfile for this repo

@@ -128,11 +128,31 @@ kekkai --kekkai-help
 Most flags also work as env var, like `KEKKAI_CPUS=4`.
 `--kekkai-help` show which.
 
-Want same every time? Put env var in `~/.kekkai/kekkai.env`:
+## Config file
 
-```
-KEKKAI_CPUS=4
-KEKKAI_MEMORY=4G
+Want same every time? Write `.kekkai.yaml`.
+
+- `~/.kekkai/.kekkai.yaml` — for every box
+- `.kekkai.yaml` in repo root — for this repo only
+
+```yaml
+cpus: 4
+memory: 8G
+mounts:
+  - ~/dev/my-cli:/opt/my-cli:ro
+env:
+  RAILS_ENV: test              # plain value
+  GH_TOKEN: {from: MY_TOKEN}   # take value from Mac env var
 ```
 
-Flag beat env var. Env var beat file.
+Two way to give env var:
+
+- `NAME: value` — box get this value
+- `NAME: {from: HOST_VAR}` — box get value of `HOST_VAR` on your Mac
+
+Mac no have `HOST_VAR`? Kekkai skip it and say so.
+
+Flag beat env var. Env var beat repo file. Repo file beat home file.
+`mounts` and `env` from both files add up.
+
+Repo file can read your Mac env vars. Only use kekkai in repo you trust.

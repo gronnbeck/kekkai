@@ -277,33 +277,6 @@ func TestReplaceEntrySwapsDirAndLeavesNoTemp(t *testing.T) {
 	}
 }
 
-func TestDefaultOptionsReadSettingsFileBelowEnv(t *testing.T) {
-	state := t.TempDir()
-	os.WriteFile(filepath.Join(state, settingsFileName), []byte(
-		"# resources\nKEKKAI_CPUS=2\nexport KEKKAI_MEMORY=\"16G\"\n\nKEKKAI_MOUNTS=/a,/b\n",
-	), 0o644)
-	t.Setenv("KEKKAI_STATE_DIR", state)
-	t.Setenv("KEKKAI_CPUS", "3")
-	os.Unsetenv("KEKKAI_MEMORY")
-	os.Unsetenv("KEKKAI_MOUNTS")
-
-	opts := defaultOptions()
-	if opts.cpus != "3" || opts.memory != "16G" || !reflect.DeepEqual(opts.mounts, []string{"/a", "/b"}) {
-		t.Errorf("opts = %+v", opts)
-	}
-}
-
-func TestDefaultOptionsFallBackToBuiltInResources(t *testing.T) {
-	t.Setenv("KEKKAI_STATE_DIR", t.TempDir())
-	os.Unsetenv("KEKKAI_CPUS")
-	os.Unsetenv("KEKKAI_MEMORY")
-
-	opts := defaultOptions()
-	if opts.cpus != defaultCPUs || opts.memory != defaultMemory {
-		t.Errorf("opts = %+v", opts)
-	}
-}
-
 func TestGithubEnvPrefersHostToken(t *testing.T) {
 	t.Setenv("GH_TOKEN", "t")
 	env, err := githubEnv()
@@ -312,5 +285,89 @@ func TestGithubEnvPrefersHostToken(t *testing.T) {
 	}
 	if env["GH_TOKEN"] != "t" || env["GIT_CONFIG_KEY_0"] != "credential.https://github.com.helper" || env["GIT_CONFIG_VALUE_0"] != gitCredentialHelper {
 		t.Errorf("env = %v", env)
+	}
+}
+
+func TestLoadConfigReadsLiteralsAndHostRefs(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, ".kekkai.yml"), []byte(`
+cpus: 4
+mounts:
+  - ~/dev/cli:/opt/cli:ro
+env:
+  RAILS_ENV: test
+  PORT: 3000
+  GH_TOKEN: {from: HOST_GH}
+`), 0o644)
+	cfg, err := loadConfig(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.CPUs != "4" || cfg.Env["RAILS_ENV"].Value != "test" || cfg.Env["PORT"].Value != "3000" || cfg.Env["GH_TOKEN"].From != "HOST_GH" {
+		t.Errorf("cfg = %+v", cfg)
+	}
+}
+
+func TestLoadConfigRejectsUnknownKeysAndBadEnv(t *testing.T) {
+	for _, body := range []string{"cpu: 4\n", "env:\n  X: {form: Y}\n"} {
+		dir := t.TempDir()
+		os.WriteFile(filepath.Join(dir, ".kekkai.yaml"), []byte(body), 0o644)
+		if _, err := loadConfig(dir); err == nil {
+			t.Errorf("%q: want error", body)
+		}
+	}
+}
+
+func TestApplyConfigsRepoBeatsGlobalAndFlagsBeatBoth(t *testing.T) {
+	global := &fileConfig{dir: "/home", CPUs: "2", Memory: "4G", Mounts: []string{"g"},
+		Env: map[string]envValue{"A": {Value: "global"}, "B": {Value: "global"}}}
+	repo := &fileConfig{dir: "/repo", CPUs: "6", Mounts: []string{"r:ro"},
+		Env: map[string]envValue{"A": {Value: "repo"}}}
+
+	opts := applyConfigs(options{memory: "9G"}, global, repo)
+	if opts.cpus != "6" || opts.memory != "9G" {
+		t.Errorf("cpus=%s memory=%s", opts.cpus, opts.memory)
+	}
+	wantMounts := []mount{{src: "/home/g", dst: "/home/g"}, {src: "/repo/r", dst: "/repo/r", readOnly: true}}
+	if !reflect.DeepEqual(opts.configMounts, wantMounts) {
+		t.Errorf("mounts = %+v", opts.configMounts)
+	}
+
+	t.Setenv("KEKKAI_ENV", "")
+	env := map[string]bool{}
+	for _, kv := range containerEnv(opts, nil) {
+		env[kv] = true
+	}
+	if !env["A=repo"] || !env["B=global"] {
+		t.Errorf("env = %v", env)
+	}
+}
+
+func TestApplyConfigsFallsBackToBuiltInResources(t *testing.T) {
+	opts := applyConfigs(options{}, nil, nil)
+	if opts.cpus != defaultCPUs || opts.memory != defaultMemory {
+		t.Errorf("opts = %+v", opts)
+	}
+}
+
+func TestContainerEnvResolvesHostRefsAndSkipsMissing(t *testing.T) {
+	t.Setenv("HOST_TOKEN", "secret")
+	opts := options{configEnv: []envEntry{
+		{"TOKEN", envValue{From: "HOST_TOKEN"}},
+		{"MISSING", envValue{From: "KEKKAI_TEST_UNSET"}},
+	}}
+	got := strings.Join(containerEnv(opts, nil), "\n")
+	if !strings.Contains(got, "TOKEN=secret") || strings.Contains(got, "MISSING") {
+		t.Errorf("env = %s", got)
+	}
+}
+
+func TestHasAuthSeesTokenFromConfig(t *testing.T) {
+	opts := options{configEnv: []envEntry{{"CLAUDE_CODE_OAUTH_TOKEN", envValue{Value: "sk-ant-oat"}}}}
+	if !hasAuth(containerEnv(opts, nil)) {
+		t.Error("token from .kekkai.yaml not seen")
+	}
+	if hasAuth([]string{"ANTHROPIC_API_KEY=", "TERM=xterm"}) {
+		t.Error("empty key counted as auth")
 	}
 }
